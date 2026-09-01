@@ -1,3 +1,6 @@
+# 🏗️ Proposed Directory Structure
+
+```text
 upgrade-guard/
 ├── CMakeLists.txt
 ├── CMakePresets.json
@@ -196,3 +199,4 @@ upgrade-guard/
     │   ├── sanitizers.yml
     │   └── package.yml
     └── ISSUE_TEMPLATE/
+```
