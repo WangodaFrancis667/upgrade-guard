@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Upgrade Guard report v1",
+  "type": "object",
+  "required": ["schema_version", "tool_version", "scan_id", "started_at", "completed_at", "current_system", "target_release", "overall_status", "summary", "findings", "limitations", "privacy"],
+  "properties": {
+    "schema_version": { "const": "1.0" },
+    "tool_version": { "type": "string" },
+    "scan_id": { "type": "string" },
+    "started_at": { "type": "string" },
+    "completed_at": { "type": "string" },
+    "current_system": { "type": "object" },
+    "target_release": { "type": "string" },
+    "overall_status": { "enum": ["ready", "ready_with_warnings", "blocked", "incomplete"] },
+    "summary": { "type": "object" },
+    "findings": { "type": "array" },
+    "limitations": { "type": "array" },
+    "privacy": { "type": "object" }
+  }
+}
