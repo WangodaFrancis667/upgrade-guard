@@ -1,4 +1,5 @@
 #include "upgrade_guard/reporting/ReporterFactories.hpp"
+#include "upgrade_guard/reporting/Redaction.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -6,20 +7,6 @@
 
 namespace upgrade_guard::reporting {
 namespace {
-
-std::string redact(std::string value) {
-  const auto at = value.find('@');
-  const auto scheme = value.find("://");
-  if (scheme != std::string::npos && at != std::string::npos && at > scheme) {
-    value.replace(scheme + 3, at - scheme - 3, "[redacted]");
-  }
-  const auto home = value.find("/home/");
-  if (home != std::string::npos) {
-    const auto next = value.find('/', home + 6);
-    value.replace(home, next == std::string::npos ? std::string::npos : next - home, "/home/[redacted]");
-  }
-  return value;
-}
 
 std::string esc(const std::string &text) {
   std::ostringstream out;
@@ -71,6 +58,18 @@ std::string severity(domain::Severity value) {
   return "info";
 }
 
+std::string confidence(domain::Confidence value) {
+  switch (value) {
+  case domain::Confidence::low:
+    return "low";
+  case domain::Confidence::medium:
+    return "medium";
+  case domain::Confidence::high:
+    return "high";
+  }
+  return "low";
+}
+
 std::string overall(domain::ReadinessStatus value) {
   switch (value) {
   case domain::ReadinessStatus::ready:
@@ -102,12 +101,16 @@ public:
     out << "\"current_system\":{\"id\":\"" << esc(report.platform.distribution.id) << "\",";
     out << "\"name\":\"" << esc(report.platform.distribution.name) << "\",";
     out << "\"version_id\":\"" << esc(report.platform.distribution.version_id) << "\",";
-    out << "\"architecture\":\"" << esc(report.platform.architecture) << "\"},";
+    out << "\"codename\":\"" << esc(report.platform.distribution.codename) << "\",";
+    out << "\"architecture\":\"" << esc(report.platform.architecture) << "\",";
+    out << "\"kernel_release\":\"" << esc(report.platform.kernel_version) << "\",";
+    out << "\"container_detected\":" << (report.platform.container_detected ? "true" : "false") << "},";
     out << "\"target_release\":\"" << esc(report.request.target_release) << "\",";
     out << "\"overall_status\":\"" << overall(report.overall_status) << "\",";
     out << "\"summary\":{\"blockers\":" << count_status(report, domain::CheckStatus::blocked);
     out << ",\"warnings\":" << count_status(report, domain::CheckStatus::warning);
-    out << ",\"unknown\":" << count_status(report, domain::CheckStatus::unknown) << "},";
+    out << ",\"unknown\":" << count_status(report, domain::CheckStatus::unknown);
+    out << ",\"errors\":" << count_status(report, domain::CheckStatus::error) << "},";
     out << "\"findings\":[";
     for (std::size_t i = 0; i < report.findings.size(); ++i) {
       const auto &f = report.findings[i];
@@ -121,10 +124,13 @@ public:
         if (j != 0) {
           out << ",";
         }
-        out << "{\"label\":\"" << esc(f.evidence[j].label) << "\",\"value\":\"" << esc(redact(f.evidence[j].value)) << "\"}";
+        out << "{\"label\":\"" << esc(redact_sensitive(f.evidence[j].label)) << "\",\"value\":\""
+            << esc(redact_sensitive(f.evidence[j].value)) << "\"}";
       }
       out << "],\"recommendation\":\"" << esc(f.recommendation) << "\",";
-      out << "\"collector_complete\":" << (f.collector_complete ? "true" : "false") << "}";
+      out << "\"confidence\":\"" << confidence(f.confidence) << "\",";
+      out << "\"collector_complete\":" << (f.collector_complete ? "true" : "false") << ",";
+      out << "\"documentation_ref\":\"" << esc(f.documentation_ref) << "\"}";
     }
     out << "],\"limitations\":[";
     for (std::size_t i = 0; i < report.limitations.size(); ++i) {

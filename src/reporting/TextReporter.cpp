@@ -1,4 +1,5 @@
 #include "upgrade_guard/reporting/ReporterFactories.hpp"
+#include "upgrade_guard/reporting/Redaction.hpp"
 
 #include <algorithm>
 #include <sstream>
@@ -63,6 +64,9 @@ public:
     out << "Upgrade Guard " << domain::ToolVersion << "\n";
     out << "Current system: " << report.platform.distribution.name << "\n";
     out << "Target release: Ubuntu " << report.request.target_release << " LTS\n\n";
+    out << "Scan ID: " << report.scan_id << "\n";
+    out << "Started: " << report.started_at << "\n";
+    out << "Completed: " << report.completed_at << "\n\n";
     out << "Overall status: " << overall(report.overall_status) << "\n\n";
     out << "Blockers: " << count_status(report, domain::CheckStatus::blocked) << "\n";
     out << "Warnings: " << count_status(report, domain::CheckStatus::warning) << "\n";
@@ -73,19 +77,23 @@ public:
       }
       out << "[" << colored(status(finding.status), finding.status, color_) << "] " << finding.id << "\n";
       out << finding.title << "\n";
+      out << finding.explanation << "\n";
       out << "Evidence:";
       if (finding.evidence.empty()) {
         out << " none";
       }
       out << "\n";
       for (const auto &evidence : finding.evidence) {
-        out << "  - " << evidence.label << ": " << evidence.value << "\n";
+        out << "  - " << redact_sensitive(evidence.label) << ": " << redact_sensitive(evidence.value) << "\n";
       }
       out << "Recommended action: " << finding.recommendation << "\n\n";
     }
     for (const auto &limitation : report.limitations) {
-      out << "Limitation: " << limitation << "\n";
+      if (limitation != "No system changes were made.") {
+        out << "Limitation: " << limitation << "\n";
+      }
     }
+    out << "Privacy: sensitive values are redacted by default.\n";
     out << "No system changes were made.\n";
     return out.str();
   }
