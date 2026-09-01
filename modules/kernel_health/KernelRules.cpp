@@ -29,7 +29,13 @@ domain::Finding fallback(const domain::SystemSnapshot &s) {
                     domain::Confidence::medium,
                     true,
                     "docs/supported-platforms.md"};
-  if (s.kernel.installed_kernels.empty()) {
+  if (s.platform.has_value() && s.platform->container_detected) {
+    f.status = domain::CheckStatus::unknown;
+    f.severity = domain::Severity::warning;
+    f.explanation = "Kernel fallback evidence is container-limited because containers share the host kernel.";
+    f.recommendation = "Validate kernel fallback availability in a native system or VM.";
+    f.collector_complete = false;
+  } else if (s.kernel.installed_kernels.empty()) {
     f.status = domain::CheckStatus::unknown;
     f.severity = domain::Severity::warning;
     f.explanation = "Installed kernel package evidence was unavailable.";
@@ -55,6 +61,14 @@ domain::Finding consistency(const domain::SystemSnapshot &s) {
                     domain::Confidence::medium,
                     true,
                     "docs/supported-platforms.md"};
+  if (s.platform.has_value() && s.platform->container_detected) {
+    f.status = domain::CheckStatus::unknown;
+    f.severity = domain::Severity::warning;
+    f.explanation = "Kernel support-file evidence is container-limited.";
+    f.recommendation = "Validate headers and initramfs in a native system or VM.";
+    f.collector_complete = false;
+    return f;
+  }
   for (const auto &issue : s.kernel.missing_headers) {
     f.evidence.push_back({"missing header", issue});
   }
@@ -88,11 +102,25 @@ domain::Finding dkms(const domain::SystemSnapshot &s) {
   for (const auto &error : s.dkms.parse_errors) {
     f.evidence.push_back({"parse warning", error});
   }
-  if (!s.dkms.failed_modules.empty()) {
+  for (const auto &module : s.dkms.incomplete_modules) {
+    f.evidence.push_back({"incomplete module", module});
+  }
+  if (s.dkms.command_missing) {
+    f.status = domain::CheckStatus::unknown;
+    f.severity = domain::Severity::warning;
+    f.explanation = "The DKMS tool is unavailable, so registered module state is unknown.";
+    f.recommendation = "Confirm whether DKMS-managed modules are present before upgrading.";
+    f.collector_complete = false;
+  } else if (!s.dkms.failed_modules.empty()) {
     f.status = domain::CheckStatus::blocked;
     f.severity = domain::Severity::blocker;
     f.explanation = "Failed or incomplete DKMS modules were detected.";
     f.recommendation = "Resolve DKMS module build/install failures before upgrading.";
+  } else if (!s.dkms.incomplete_modules.empty()) {
+    f.status = domain::CheckStatus::blocked;
+    f.severity = domain::Severity::blocker;
+    f.explanation = "DKMS modules are registered but not installed for one or more kernels.";
+    f.recommendation = "Resolve DKMS added/built states before upgrading.";
   } else if (!s.dkms.parse_errors.empty()) {
     f.status = domain::CheckStatus::unknown;
     f.severity = domain::Severity::warning;

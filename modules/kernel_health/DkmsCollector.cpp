@@ -11,11 +11,14 @@ public:
   [[nodiscard]] std::string name() const override { return "dkms"; }
   [[nodiscard]] domain::Result<void> collect(domain::SystemSnapshot &snapshot) const override {
     auto result = runner_.run({"dkms", {"status"}, std::chrono::milliseconds(4000), 65536, {}});
-    if (!result.ok() || result.value().spawn_failed) {
+    if (!result.ok() || (result.ok() && result.value().spawn_failed)) {
       snapshot.dkms.command_missing = true;
       return {};
     }
     snapshot.dkms.installed = true;
+    if (result.value().timed_out || result.value().exit_code != 0 || result.value().truncated) {
+      domain::add_issue(snapshot, name(), "dkms status did not complete successfully");
+    }
     std::istringstream in(result.value().stdout_text);
     std::string line;
     while (std::getline(in, line)) {
@@ -24,10 +27,13 @@ public:
       }
       snapshot.dkms.modules.push_back(line);
       if (line.find("bad") != std::string::npos || line.find("failed") != std::string::npos ||
-          line.find("added") != std::string::npos) {
+          line.find("broken") != std::string::npos) {
         snapshot.dkms.failed_modules.push_back(line);
       }
-      if (line.find(',') == std::string::npos) {
+      if (line.find(": added") != std::string::npos || line.find(": built") != std::string::npos) {
+        snapshot.dkms.incomplete_modules.push_back(line);
+      }
+      if (line.find(',') == std::string::npos || line.find(':') == std::string::npos) {
         snapshot.dkms.parse_errors.push_back(line);
       }
     }

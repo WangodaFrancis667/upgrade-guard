@@ -33,17 +33,30 @@ public:
                               std::chrono::milliseconds(4000),
                               65536,
                               {}});
-    if (query.ok() && !query.value().spawn_failed) {
+    if (query.ok() && !query.value().spawn_failed && !query.value().timed_out && query.value().exit_code == 0) {
       snapshot.kernel.installed_kernels = lines(query.value().stdout_text);
+    } else {
+      domain::add_issue(snapshot, name(), "installed kernel package query did not complete");
     }
     snapshot.kernel.has_fallback_kernel = snapshot.kernel.installed_kernels.size() > 1;
+    if (!snapshot.kernel.running_kernel.empty()) {
+      const auto modules = std::filesystem::path(root_) / "lib/modules" / snapshot.kernel.running_kernel / "build";
+      if (!std::filesystem::exists(modules)) {
+        snapshot.kernel.missing_headers.push_back(snapshot.kernel.running_kernel);
+      }
+    }
     const auto boot = std::filesystem::path(root_) / "boot";
     if (std::filesystem::exists(boot)) {
+      bool running_initramfs = false;
       for (const auto &entry : std::filesystem::directory_iterator(boot)) {
         const auto name = entry.path().filename().string();
+        running_initramfs = running_initramfs || name == "initrd.img-" + snapshot.kernel.running_kernel;
         if (name.rfind("initrd.img-", 0) == 0 && std::filesystem::file_size(entry.path()) < 1024) {
           snapshot.kernel.initramfs_issues.push_back(name + " is unexpectedly small");
         }
+      }
+      if (!snapshot.kernel.running_kernel.empty() && !running_initramfs) {
+        snapshot.kernel.initramfs_issues.push_back("initramfs for running kernel was not found");
       }
     }
     return {};
