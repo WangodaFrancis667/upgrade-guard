@@ -12,4 +12,4 @@ CMake targets mirror these boundaries. `upgrade_guard_application` links only to
 
 Dependency injection is manual constructor injection. There is no container, singleton or service locator.
 
-`libapt-pkg` is intentionally isolated as a future narrow package-health adapter boundary. This beta build keeps APT integration process/file based when development headers are unavailable, and the Debian metadata declares `libapt-pkg-dev` for package builds that add the library adapter.
+`libapt-pkg` is isolated in `AptCacheAdapter.cpp`; its types do not cross the package-health module. Builds with the development package use it for cache, broken-count and upgradable-package evidence. A filesystem/current-release simulation fallback keeps developer builds possible when the headers are unavailable.
