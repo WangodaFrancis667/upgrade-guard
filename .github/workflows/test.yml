@@ -1,0 +1,14 @@
+name: test
+on: [push, pull_request]
+jobs:
+  line-limit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          failed=0
+          for f in $(find include src modules tests -name '*.cpp' -o -name '*.hpp' -o -name '*.h'); do
+            lines=$(wc -l < "$f")
+            if [ "$lines" -gt 400 ]; then echo "$f has $lines lines"; failed=1; fi
+          done
+          exit "$failed"

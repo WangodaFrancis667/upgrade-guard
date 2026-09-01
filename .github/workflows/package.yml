@@ -1,0 +1,10 @@
+name: package
+on: [push, pull_request]
+jobs:
+  debian:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y build-essential debhelper-compat cmake ninja-build pkg-config libapt-pkg-dev libfmt-dev nlohmann-json3-dev libgtest-dev lintian
+      - run: dpkg-buildpackage -us -uc
+      - run: lintian --pedantic ../upgrade-guard_*.changes

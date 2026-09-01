@@ -1,0 +1,10 @@
+name: sanitizers
+on: [push, pull_request]
+jobs:
+  asan-ubsan:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y cmake ninja-build g++
+      - run: cmake --preset asan && cmake --build --preset asan && ctest --preset asan --output-on-failure
+      - run: cmake --preset ubsan && cmake --build --preset ubsan && ctest --preset ubsan --output-on-failure

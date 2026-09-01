@@ -1,0 +1,11 @@
+name: build
+on: [push, pull_request]
+jobs:
+  gcc:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y cmake ninja-build g++
+      - run: cmake --preset debug
+      - run: cmake --build --preset debug
+      - run: ctest --preset debug --output-on-failure
