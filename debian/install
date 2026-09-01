@@ -1,0 +1,2 @@
+usr/bin/upgrade-guard
+usr/share/upgrade-guard/schemas/report-v1.schema.json

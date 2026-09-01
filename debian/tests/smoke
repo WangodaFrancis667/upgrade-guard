@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+tmp="$(mktemp -d)"
+before="$tmp/before"
+after="$tmp/after"
+find /etc/apt /var/lib/dpkg /boot /var/lib/dkms -maxdepth 2 -type f 2>/dev/null | sort > "$before" || true
+upgrade-guard --version
+upgrade-guard --help
+upgrade-guard list-checks
+upgrade-guard scan || test "$?" -le 3
+upgrade-guard export --format json || test "$?" -le 3
+find /etc/apt /var/lib/dpkg /boot /var/lib/dkms -maxdepth 2 -type f 2>/dev/null | sort > "$after" || true
+cmp "$before" "$after"

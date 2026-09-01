@@ -1,0 +1,15 @@
+Source: upgrade-guard
+Section: admin
+Priority: optional
+Maintainer: Upgrade Guard contributors <maintainers@example.invalid>
+Build-Depends: debhelper-compat (= 13), cmake, ninja-build, pkg-config, g++, libapt-pkg-dev, libfmt-dev, nlohmann-json3-dev, libgtest-dev
+Rules-Requires-Root: no
+Standards-Version: 4.7.0
+Homepage: https://example.invalid/upgrade-guard
+
+Package: upgrade-guard
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: read-only Ubuntu release-upgrade readiness assistant
+ Upgrade Guard inspects read-only package, platform, storage, kernel, DKMS,
+ Secure Boot and reboot evidence to report Ubuntu release-upgrade risks.
