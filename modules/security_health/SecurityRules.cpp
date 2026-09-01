@@ -19,7 +19,13 @@ public:
                       domain::Confidence::medium,
                       true,
                       "docs/threat-model.md"};
-    if (s.secure_boot.state_unknown) {
+    if (s.platform.has_value() && s.platform->container_detected) {
+      f.status = domain::CheckStatus::unknown;
+      f.severity = domain::Severity::warning;
+      f.explanation = "Secure Boot evidence is container-limited.";
+      f.recommendation = "Validate Secure Boot and module signing in a native system or VM.";
+      f.collector_complete = false;
+    } else if (s.secure_boot.state_unknown) {
       f.status = domain::CheckStatus::unknown;
       f.severity = domain::Severity::warning;
       f.explanation = "Secure Boot state could not be determined read-only.";

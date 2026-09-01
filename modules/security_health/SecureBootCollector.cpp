@@ -17,7 +17,8 @@ public:
     snapshot.secure_boot.mokutil_installed = true;
     snapshot.secure_boot.raw_state = result.value().stdout_text;
     snapshot.secure_boot.enabled = result.value().stdout_text.find("enabled") != std::string::npos;
-    snapshot.secure_boot.state_unknown = result.value().stdout_text.empty() || result.value().exit_code != 0;
+    snapshot.secure_boot.state_unknown = result.value().stdout_text.empty() || result.value().exit_code != 0 ||
+                                         result.value().timed_out || result.value().truncated;
     return {};
   }
 
