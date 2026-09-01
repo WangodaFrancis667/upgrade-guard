@@ -10,6 +10,9 @@ export --format json [--output FILE] [--force]
 .br
 .B upgrade-guard
 explain FINDING-ID
+.br
+.B upgrade-guard
+list-checks | version | help
 .SH DESCRIPTION
 Upgrade Guard inspects read-only system evidence and reports known conditions that can block or complicate an Ubuntu release upgrade.
 .PP
@@ -20,3 +23,25 @@ No system changes were made.
 0 ready, 1 ready with warnings, 2 blocked, 3 incomplete scan or tool error, 64 command-line usage error.
 .SH SAFETY
 The program does not install, remove or upgrade packages, run apt update, modify APT sources, change Secure Boot, modify kernels, upload reports or require sudo for ordinary scans.
+.SH OPTIONS
+.TP
+.B --target 24.04|26.04
+Select the requested target LTS release.
+.TP
+.B --format text|json
+Select stable human-readable or schema-versioned JSON output.
+.TP
+.B --output FILE
+Write the report to a file. Existing files are protected unless
+.B --force
+is supplied.
+.TP
+.B --no-color
+Disable ANSI color.
+.TP
+.B --verbose
+Include passing findings in text output.
+.SH FILES
+.I /usr/share/upgrade-guard/schemas/report-v1.schema.json
+.br
+.I /usr/share/bash-completion/completions/upgrade-guard
