@@ -1,0 +1,13 @@
+_upgrade_guard() {
+  local cur prev
+  COMPREPLY=()
+  cur="${COMP_WORDS[COMP_CWORD]}"
+  prev="${COMP_WORDS[COMP_CWORD-1]}"
+  case "$prev" in
+    --target) COMPREPLY=( $(compgen -W "24.04 26.04" -- "$cur") ); return ;;
+    --format) COMPREPLY=( $(compgen -W "text json" -- "$cur") ); return ;;
+    explain) COMPREPLY=( $(compgen -W "UG-REL-001 UG-REL-002 UG-REL-003 UG-APT-001 UG-APT-002 UG-APT-003 UG-APT-004 UG-APT-005 UG-APT-006 UG-APT-007 UG-DSK-001 UG-DSK-002 UG-DSK-003 UG-DKM-001 UG-SEC-001 UG-KRN-001 UG-KRN-002 UG-RBT-001" -- "$cur") ); return ;;
+  esac
+  COMPREPLY=( $(compgen -W "scan export explain list-checks version help --help --version --target --format --output --force --no-color --verbose" -- "$cur") )
+}
+complete -F _upgrade_guard upgrade-guard
