@@ -2,7 +2,7 @@
 
 Upgrade Guard is a native C++20, read-only Ubuntu upgrade readiness assistant. It inspects evidence available on the current machine and answers whether known package, platform, storage, kernel, DKMS, Secure Boot and reboot conditions could block or complicate an Ubuntu release upgrade.
 
-Upgrade Guard does not guarantee that an operating-system upgrade will succeed. It identifies known readiness risks from evidence available at scan time. It is not endorsed by Canonical, Ubuntu or Debian.
+Upgrade Guard does not guarantee that an operating-system upgrade will succeed. It identifies known readiness risks from evidence available at scan time. It is not endorsed by Canonical, Ubuntu, Debian or System76.
 
 ## Commands
 
@@ -41,6 +41,16 @@ ctest --preset release --output-on-failure
 ```
 
 Optional presets are available for ASan and UBSan. Debian packaging metadata is included under `debian/`.
+
+Additional presets are `clang`, `asan`, `ubsan`, and `coverage`. Docker validation uses exact Ubuntu 22.04, 24.04 and 26.04 tags:
+
+```bash
+bash docker/test-matrix.sh
+```
+
+Docker shares the host kernel and cannot validate native kernel, DKMS, Secure Boot, EFI, reboot, bootloader or full systemd behavior. Use a disposable native VM for those checks.
+
+Build Debian artifacts with `scripts/build-deb.sh`. Create series-specific source packages with `scripts/build-source-package.sh noble` or `scripts/build-source-package.sh resolute`. The CLI version `0.1.0-beta.1` maps to Debian upstream version `0.1.0~beta1`; source packages append the Ubuntu-series suffix documented in [docs/launchpad-release.md](docs/launchpad-release.md). No script uploads artifacts.
 
 ## Architecture
 

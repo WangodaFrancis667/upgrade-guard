@@ -8,6 +8,9 @@ Run:
 cmake --preset debug
 cmake --build --preset debug
 ctest --preset debug --output-on-failure
+cmake --preset asan && cmake --build --preset asan && ctest --preset asan
+cmake --preset ubsan && cmake --build --preset ubsan && ctest --preset ubsan
+scripts/check-release.sh
 ```
 
 Do not add scan-time mutation, telemetry, network calls or sudo usage.

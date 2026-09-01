@@ -1,4 +1,5 @@
 build/
+artifacts/
 debian/.debhelper/
 debian/build/
 debian/debhelper-build-stamp
