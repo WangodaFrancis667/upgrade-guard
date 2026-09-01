@@ -12,10 +12,15 @@ public:
   [[nodiscard]] std::string name() const override { return "reboot"; }
   [[nodiscard]] domain::Result<void> collect(domain::SystemSnapshot &snapshot) const override {
     const auto marker = std::filesystem::path(root_) / "var/run/reboot-required";
-    snapshot.reboot.reboot_required = std::filesystem::exists(marker);
+    std::error_code error;
+    snapshot.reboot.reboot_required = std::filesystem::exists(marker, error);
+    snapshot.reboot.read_error = static_cast<bool>(error);
     const auto packages = std::filesystem::path(root_) / "var/run/reboot-required.pkgs";
     if (std::filesystem::exists(packages)) {
       std::ifstream in(packages);
+      if (!in) {
+        snapshot.reboot.read_error = true;
+      }
       std::string line;
       while (std::getline(in, line)) {
         if (!line.empty()) {
