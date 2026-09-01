@@ -6,8 +6,10 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
-#include <stdexcept>
+#include <algorithm>
 #include <cstdlib>
+#include <array>
+#include <stdexcept>
 #include <unistd.h>
 
 namespace upgrade_guard::cli {
@@ -26,6 +28,15 @@ std::string help() {
          "  version\n"
          "  help\n\n"
          "Options: --target <release> --format text|json --output <file> --force --no-color --verbose --version --help\n";
+}
+
+constexpr std::array<const char *, 18> check_ids{
+    "UG-REL-001", "UG-REL-002", "UG-REL-003", "UG-APT-001", "UG-APT-002", "UG-APT-003",
+    "UG-APT-004", "UG-APT-005", "UG-APT-006", "UG-APT-007", "UG-DSK-001", "UG-DSK-002",
+    "UG-DSK-003", "UG-DKM-001", "UG-SEC-001", "UG-KRN-001", "UG-KRN-002", "UG-RBT-001"};
+
+bool valid_check(const std::string &id) {
+  return std::find(check_ids.begin(), check_ids.end(), id) != check_ids.end();
 }
 
 bool valid_target(const std::string &target) { return target == "24.04" || target == "26.04"; }
@@ -53,11 +64,22 @@ void write_output(const std::string &text, const std::string &path, bool force) 
     throw std::runtime_error("output file exists; pass --force to overwrite");
   }
   std::ofstream out(path);
+  if (!out) {
+    throw std::runtime_error("could not open output file: " + path);
+  }
   out << text;
+  if (!out) {
+    throw std::runtime_error("could not write output file: " + path);
+  }
 }
 
 std::string explain_text(const std::string &id) {
-  return id + ": see list-checks for stable rule names. Each finding includes evidence, confidence and read-only guidance.\n";
+  if (id == "UG-APT-004") {
+    return "UG-APT-004 — Third-party repositories\n"
+           "Warns when an enabled APT source is outside Ubuntu or Canonical. Classification is heuristic; credentials "
+           "are redacted in exported reports. Review compatibility with the target release manually.\n";
+  }
+  return id + " — stable readiness check. Run a verbose scan for its evidence, explanation and recommendation.\n";
 }
 
 } // namespace
@@ -74,6 +96,36 @@ int run(int argc, char **argv) {
   if (command == "--version") {
     command = "version";
   }
+  if (command == "help" || (argc == 3 && std::string(argv[2]) == "--help")) {
+    std::cout << help();
+    return ready;
+  }
+  if (command == "version") {
+    std::cout << "upgrade-guard " << domain::ToolVersion << "\n";
+    return ready;
+  }
+  if (command == "explain") {
+    if (argc != 3 || !valid_check(argv[2])) {
+      std::cerr << "explain requires one known finding ID\n";
+      return usage;
+    }
+    std::cout << explain_text(argv[2]);
+    return ready;
+  }
+  if (command == "list-checks") {
+    if (argc != 2) {
+      return usage;
+    }
+    for (const auto *id : check_ids) {
+      std::cout << id << "\n";
+    }
+    return ready;
+  }
+  if (command != "scan" && command != "export") {
+    std::cerr << help();
+    return usage;
+  }
+
   bool color = isatty(STDOUT_FILENO) != 0 && std::getenv("NO_COLOR") == nullptr;
   bool force = false;
   domain::ScanRequest request;
@@ -98,35 +150,11 @@ int run(int argc, char **argv) {
       return usage;
     }
   }
-  if (command == "help") {
-    std::cout << help();
-    return ready;
-  }
-  if (command == "version") {
-    std::cout << "upgrade-guard " << domain::ToolVersion << "\n";
-    return ready;
-  }
-  if (command == "explain") {
-    if (argc < 3) {
+  if (command == "export") {
+    if (format != "text" && format != "json") {
       return usage;
     }
-    std::cout << explain_text(argv[2]);
-    return ready;
-  }
-  if (command == "list-checks") {
-    for (const auto *id : {"UG-REL-001", "UG-REL-002", "UG-REL-003", "UG-APT-001", "UG-APT-002", "UG-APT-003",
-                           "UG-APT-004", "UG-APT-005", "UG-APT-006", "UG-APT-007", "UG-DSK-001", "UG-DSK-002",
-                           "UG-DSK-003", "UG-DKM-001", "UG-SEC-001", "UG-KRN-001", "UG-KRN-002", "UG-RBT-001"}) {
-      std::cout << id << "\n";
-    }
-    return ready;
-  }
-  if (command == "export") {
     format = "json";
-  }
-  if (command != "scan" && command != "export") {
-    std::cerr << help();
-    return usage;
   }
   if (!valid_target(request.target_release) || (format != "text" && format != "json")) {
     std::cerr << "Invalid target or format\n";
@@ -145,7 +173,7 @@ int run(int argc, char **argv) {
     return exit_for(report.overall_status);
   } catch (const std::exception &ex) {
     std::cerr << ex.what() << "\n";
-    return usage;
+    return incomplete;
   }
 }
 
