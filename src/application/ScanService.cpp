@@ -29,13 +29,14 @@ std::string scan_id() {
 
 domain::ReadinessStatus aggregate(const std::vector<domain::Finding> &findings) {
   const auto has_blocker = std::any_of(findings.begin(), findings.end(), [](const auto &finding) {
-    return finding.status == domain::CheckStatus::blocked || finding.status == domain::CheckStatus::error;
+    return finding.status == domain::CheckStatus::blocked;
   });
   if (has_blocker) {
     return domain::ReadinessStatus::blocked;
   }
   const auto incomplete = std::any_of(findings.begin(), findings.end(), [](const auto &finding) {
-    return finding.status == domain::CheckStatus::unknown || !finding.collector_complete;
+    return finding.status == domain::CheckStatus::unknown || finding.status == domain::CheckStatus::error ||
+           !finding.collector_complete;
   });
   if (incomplete) {
     return domain::ReadinessStatus::incomplete;
@@ -89,6 +90,10 @@ domain::Result<domain::ScanReport> ScanService::execute(const domain::ScanReques
   report.findings = std::move(findings);
   report.overall_status = aggregate(report.findings);
   report.limitations.push_back("Target-release dependency simulation was not performed.");
+  if (snapshot.platform.has_value() && snapshot.platform->container_detected) {
+    report.limitations.push_back(
+        "Container execution shares the host kernel; kernel, DKMS, Secure Boot, EFI and reboot evidence is limited.");
+  }
   report.limitations.push_back("No system changes were made.");
   if (snapshot.platform.has_value()) {
     report.platform = snapshot.platform.value();
