@@ -20,6 +20,11 @@ bool allowed(const std::string &name) {
   return std::find(names.begin(), names.end(), name) != names.end();
 }
 
+bool safe_environment_key(const std::string &key) {
+  static const std::array<const char *, 1> names{"TZ"};
+  return std::find(names.begin(), names.end(), key) != names.end();
+}
+
 std::string resolve(const std::string &name) {
   if (name.find('/') != std::string::npos) {
     return name;
@@ -64,10 +69,16 @@ std::vector<char *> make_argv(const std::string &path, const std::vector<std::st
 domain::Result<ports::ProcessResult> spawn_child(const ports::ProcessRequest &request, int out_pipe[2],
                                                  int err_pipe[2]) {
   const std::string path = resolve(request.executable);
-  if (path.empty() || !allowed(request.executable)) {
+  if (!allowed(request.executable)) {
     ports::ProcessResult result;
     result.spawn_failed = true;
-    result.failure_message = "executable is unavailable or not allowed";
+    result.failure_message = "executable is not allowlisted";
+    return result;
+  }
+  if (path.empty()) {
+    ports::ProcessResult result;
+    result.spawn_failed = true;
+    result.failure_message = "allowlisted executable is unavailable or not executable";
     return result;
   }
 
@@ -86,7 +97,9 @@ domain::Result<ports::ProcessResult> spawn_child(const ports::ProcessRequest &re
     auto argv = make_argv(path, request.arguments);
     std::vector<std::string> env_store{"LC_ALL=C", "PATH=/usr/sbin:/usr/bin:/sbin:/bin"};
     for (const auto &[key, value] : request.environment) {
-      env_store.push_back(key + "=" + value);
+      if (safe_environment_key(key) && value.find('\n') == std::string::npos && value.find('\0') == std::string::npos) {
+        env_store.push_back(key + "=" + value);
+      }
     }
     std::vector<char *> envp;
     envp.reserve(env_store.size() + 1);
@@ -109,7 +122,12 @@ public:
   [[nodiscard]] domain::Result<ports::ProcessResult> run(const ports::ProcessRequest &request) const override {
     int out_pipe[2]{};
     int err_pipe[2]{};
-    if (pipe(out_pipe) != 0 || pipe(err_pipe) != 0) {
+    if (pipe(out_pipe) != 0) {
+      return domain::Error{std::string("pipe failed: ") + std::strerror(errno)};
+    }
+    if (pipe(err_pipe) != 0) {
+      close(out_pipe[0]);
+      close(out_pipe[1]);
       return domain::Error{std::string("pipe failed: ") + std::strerror(errno)};
     }
     fcntl(out_pipe[0], F_SETFL, O_NONBLOCK);
@@ -147,19 +165,34 @@ public:
             break;
           }
           auto &target = fd == out_pipe[0] ? result.stdout_text : result.stderr_text;
-          append_limited(target, buffer.data(), read_count, request.max_output_bytes, result.truncated);
+          bool stream_truncated = false;
+          append_limited(target, buffer.data(), read_count, request.max_output_bytes, stream_truncated);
+          if (fd == out_pipe[0]) {
+            result.stdout_truncated = result.stdout_truncated || stream_truncated;
+          } else {
+            result.stderr_truncated = result.stderr_truncated || stream_truncated;
+          }
+          result.truncated = result.stdout_truncated || result.stderr_truncated;
         }
       }
 
       int status = 0;
       const pid_t done = waitpid(pid, &status, WNOHANG);
       if (done == pid) {
-        result.exit_code = WIFEXITED(status) ? WEXITSTATUS(status) : 128 + WTERMSIG(status);
+        if (WIFEXITED(status)) {
+          result.exit_code = WEXITSTATUS(status);
+        } else if (WIFSIGNALED(status)) {
+          result.signaled = true;
+          result.termination_signal = WTERMSIG(status);
+          result.exit_code = 128 + result.termination_signal;
+        }
         running = false;
       } else if (std::chrono::steady_clock::now() >= deadline) {
         kill(pid, SIGKILL);
         waitpid(pid, &status, 0);
         result.timed_out = true;
+        result.signaled = true;
+        result.termination_signal = SIGKILL;
         result.exit_code = 124;
         running = false;
       }
