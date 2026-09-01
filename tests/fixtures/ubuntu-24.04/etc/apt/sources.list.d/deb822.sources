@@ -1,0 +1,10 @@
+Types: deb
+URIs: http://archive.ubuntu.com/ubuntu
+Suites: noble-updates
+Components: main restricted universe multiverse
+
+Types: deb
+URIs: https://name:password@packages.example.invalid/ubuntu
+Suites: noble
+Components: main
+Enabled: no

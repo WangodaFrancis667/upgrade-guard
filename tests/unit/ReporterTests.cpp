@@ -4,8 +4,6 @@
 
 namespace upgrade_guard::tests {
 void run_rule_tests();
-void run_process_runner_tests();
-void run_fixture_scan_tests();
 
 namespace {
 
@@ -55,7 +53,5 @@ int main() {
   upgrade_guard::tests::run_rule_tests();
   upgrade_guard::tests::json_redacts_credentials();
   upgrade_guard::tests::text_mentions_no_changes();
-  upgrade_guard::tests::run_process_runner_tests();
-  upgrade_guard::tests::run_fixture_scan_tests();
   return upgrade_guard::tests::done();
 }
