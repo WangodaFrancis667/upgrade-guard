@@ -2,19 +2,54 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Upgrade Guard report v1",
   "type": "object",
+  "additionalProperties": false,
   "required": ["schema_version", "tool_version", "scan_id", "started_at", "completed_at", "current_system", "target_release", "overall_status", "summary", "findings", "limitations", "privacy"],
   "properties": {
     "schema_version": { "const": "1.0" },
-    "tool_version": { "type": "string" },
-    "scan_id": { "type": "string" },
-    "started_at": { "type": "string" },
-    "completed_at": { "type": "string" },
-    "current_system": { "type": "object" },
-    "target_release": { "type": "string" },
+    "tool_version": { "const": "0.1.0-beta.1" },
+    "scan_id": { "type": "string", "minLength": 1 },
+    "started_at": { "type": "string", "format": "date-time" },
+    "completed_at": { "type": "string", "format": "date-time" },
+    "current_system": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "version_id", "codename", "architecture", "kernel_release", "container_detected"],
+      "properties": {
+        "id": { "type": "string" }, "name": { "type": "string" }, "version_id": { "type": "string" },
+        "codename": { "type": "string" }, "architecture": { "type": "string" },
+        "kernel_release": { "type": "string" }, "container_detected": { "type": "boolean" }
+      }
+    },
+    "target_release": { "enum": ["24.04", "26.04"] },
     "overall_status": { "enum": ["ready", "ready_with_warnings", "blocked", "incomplete"] },
-    "summary": { "type": "object" },
-    "findings": { "type": "array" },
-    "limitations": { "type": "array" },
-    "privacy": { "type": "object" }
+    "summary": {
+      "type": "object", "additionalProperties": false,
+      "required": ["blockers", "warnings", "unknown", "errors"],
+      "properties": {
+        "blockers": { "type": "integer", "minimum": 0 }, "warnings": { "type": "integer", "minimum": 0 },
+        "unknown": { "type": "integer", "minimum": 0 }, "errors": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object", "additionalProperties": false,
+        "required": ["id", "status", "severity", "title", "explanation", "evidence", "recommendation", "confidence", "collector_complete", "documentation_ref"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^UG-[A-Z]{3}-[0-9]{3}$" },
+          "status": { "enum": ["passed", "warning", "blocked", "unknown", "error"] },
+          "severity": { "enum": ["info", "warning", "blocker"] },
+          "title": { "type": "string" }, "explanation": { "type": "string" },
+          "evidence": { "type": "array", "items": { "type": "object", "required": ["label", "value"], "properties": { "label": { "type": "string" }, "value": { "type": "string" } }, "additionalProperties": false } },
+          "recommendation": { "type": "string" }, "confidence": { "enum": ["low", "medium", "high"] },
+          "collector_complete": { "type": "boolean" }, "documentation_ref": { "type": "string" }
+        }
+      }
+    },
+    "limitations": { "type": "array", "items": { "type": "string" } },
+    "privacy": {
+      "type": "object", "additionalProperties": false, "required": ["redaction"],
+      "properties": { "redaction": { "const": "default" } }
+    }
   }
 }
