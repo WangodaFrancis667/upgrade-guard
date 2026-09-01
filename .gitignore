@@ -1,0 +1,15 @@
+build/
+debian/.debhelper/
+debian/build/
+debian/debhelper-build-stamp
+debian/files
+debian/upgrade-guard/
+debian/upgrade-guard.substvars
+*.o
+*.a
+*.deb
+*.build
+*.buildinfo
+*.changes
+*.ddeb
+compile_commands.json
