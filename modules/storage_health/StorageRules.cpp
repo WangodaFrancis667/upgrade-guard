@@ -20,11 +20,15 @@ private:
 
 std::string mib(std::uintmax_t bytes) { return std::to_string(bytes / 1024U / 1024U) + " MiB"; }
 
-domain::Finding check_space(std::string id, std::string title, const domain::SpaceFacts &facts, std::uintmax_t min_bytes) {
+domain::Finding check_space(std::string id, std::string title, const domain::SpaceFacts &facts, std::uintmax_t min_bytes,
+                            bool optional = false) {
   domain::Finding f{std::move(id), domain::CheckStatus::passed, domain::Severity::info, std::move(title), "",
                     {{"mount", facts.mount_point}, {"free", mib(facts.free_bytes)}, {"threshold", mib(min_bytes)}},
                     "No action is required for this check.", domain::Confidence::medium, true, "docs/supported-platforms.md"};
-  if (facts.read_error || !facts.available) {
+  if (optional && !facts.available && !facts.read_error) {
+    f.explanation = "The optional filesystem was not discoverable; this check is not applicable.";
+    f.evidence.push_back({"heuristic", "optional mount checked when discoverable"});
+  } else if (facts.read_error || !facts.available) {
     f.status = domain::CheckStatus::unknown;
     f.severity = domain::Severity::warning;
     f.explanation = "Free space evidence could not be read.";
@@ -53,7 +57,7 @@ std::vector<std::unique_ptr<ports::IReadinessRule>> make_storage_rules() {
     return check_space("UG-DSK-002", "Boot filesystem free space", s.storage.boot, 512ULL * mib);
   }));
   rules.push_back(std::make_unique<Rule>("UG-DSK-003", [](const auto &s) {
-    return check_space("UG-DSK-003", "EFI filesystem free space", s.storage.efi, 100ULL * mib);
+    return check_space("UG-DSK-003", "EFI filesystem free space", s.storage.efi, 100ULL * mib, true);
   }));
   return rules;
 }
