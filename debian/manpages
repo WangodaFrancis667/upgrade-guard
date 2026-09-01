@@ -1,1 +1,1 @@
-man/upgrade-guard.1
+# The CMake-staged man page is installed through debian/install.

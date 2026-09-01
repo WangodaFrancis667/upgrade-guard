@@ -1,2 +1,5 @@
 usr/bin/upgrade-guard
 usr/share/upgrade-guard/schemas/report-v1.schema.json
+usr/share/bash-completion/completions/upgrade-guard
+usr/share/doc/upgrade-guard/*
+usr/share/man/man1/upgrade-guard.1

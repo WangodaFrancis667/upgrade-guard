@@ -1,11 +1,13 @@
 Source: upgrade-guard
 Section: admin
 Priority: optional
-Maintainer: Upgrade Guard contributors <maintainers@example.invalid>
-Build-Depends: debhelper-compat (= 13), cmake, ninja-build, pkg-config, g++, libapt-pkg-dev, libfmt-dev, nlohmann-json3-dev, libgtest-dev
+Maintainer: Upgrade Guard contributors <WangodaFrancis667@users.noreply.github.com>
+Build-Depends: debhelper-compat (= 13), cmake, ninja-build, pkg-config, g++, libapt-pkg-dev
 Rules-Requires-Root: no
 Standards-Version: 4.7.0
-Homepage: https://example.invalid/upgrade-guard
+Homepage: https://github.com/WangodaFrancis667/upgrade-guard
+Vcs-Git: https://github.com/WangodaFrancis667/upgrade-guard.git
+Vcs-Browser: https://github.com/WangodaFrancis667/upgrade-guard
 
 Package: upgrade-guard
 Architecture: any
