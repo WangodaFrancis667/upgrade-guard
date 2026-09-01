@@ -23,14 +23,14 @@ public:
   [[nodiscard]] std::string name() const override { return "dpkg"; }
   [[nodiscard]] domain::Result<void> collect(domain::SystemSnapshot &snapshot) const override {
     auto audit = runner_.run({"dpkg", {"--audit"}, std::chrono::milliseconds(3000), 65536, {}});
-    if (audit.ok() && !audit.value().spawn_failed) {
+    if (audit.ok() && !audit.value().spawn_failed && !audit.value().timed_out && audit.value().exit_code == 0) {
       snapshot.packages.dpkg_audit = lines(audit.value().stdout_text);
     } else {
       domain::add_issue(snapshot, name(), audit.ok() ? audit.value().failure_message : audit.error().message);
     }
 
     auto holds = runner_.run({"apt-mark", {"showhold"}, std::chrono::milliseconds(3000), 65536, {}});
-    if (holds.ok() && !holds.value().spawn_failed) {
+    if (holds.ok() && !holds.value().spawn_failed && !holds.value().timed_out && holds.value().exit_code == 0) {
       snapshot.packages.held_packages = lines(holds.value().stdout_text);
     } else {
       domain::add_issue(snapshot, name(), holds.ok() ? holds.value().failure_message : holds.error().message);

@@ -40,7 +40,7 @@ domain::Finding database(const domain::SystemSnapshot &s) {
     f.severity = domain::Severity::blocker;
     f.explanation = "dpkg reports packages in an incomplete or inconsistent state.";
     f.recommendation = "Inspect dpkg --audit output and repair package configuration before release upgrade.";
-  } else if (s.packages.simulation_incomplete) {
+  } else if (!s.packages.simulation_performed || s.packages.simulation_incomplete) {
     f.status = domain::CheckStatus::unknown;
     f.severity = domain::Severity::warning;
     f.explanation = "APT simulation did not complete, so package database health is incomplete.";
@@ -60,6 +60,12 @@ domain::Finding broken(const domain::SystemSnapshot &s) {
     f.severity = domain::Severity::blocker;
     f.explanation = "Broken package dependencies are present.";
     f.recommendation = "Resolve broken dependencies before attempting an OS release upgrade.";
+  } else if (!s.packages.simulation_performed || s.packages.simulation_incomplete) {
+    f.status = domain::CheckStatus::unknown;
+    f.severity = domain::Severity::warning;
+    f.explanation = "Dependency evidence is incomplete because the APT simulation did not complete.";
+    f.recommendation = "Review APT errors and rerun the scan.";
+    f.collector_complete = false;
   } else {
     f.explanation = "No broken dependency evidence was collected.";
   }
@@ -112,7 +118,13 @@ domain::Finding duplicates(const domain::SystemSnapshot &s) {
 domain::Finding removals(const domain::SystemSnapshot &s) {
   auto f = make("UG-APT-006", "Risky package removals in current simulation");
   f.evidence = list_evidence("proposed removal", s.packages.proposed_removals);
-  if (!s.packages.essential_removals.empty()) {
+  if (!s.packages.simulation_performed || s.packages.simulation_incomplete) {
+    f.status = domain::CheckStatus::unknown;
+    f.severity = domain::Severity::warning;
+    f.explanation = "Removal evidence is incomplete because the current-release simulation did not complete.";
+    f.recommendation = "Review APT errors and rerun the scan.";
+    f.collector_complete = false;
+  } else if (!s.packages.essential_removals.empty()) {
     f.status = domain::CheckStatus::blocked;
     f.severity = domain::Severity::blocker;
     f.explanation = "The current-release simulation proposes removal of essential upgrade plumbing.";
