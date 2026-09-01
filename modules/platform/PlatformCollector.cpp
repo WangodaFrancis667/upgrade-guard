@@ -1,6 +1,7 @@
 #include "upgrade_guard/modules/RuleFactories.hpp"
 
 #include <fstream>
+#include <filesystem>
 #include <map>
 #include <sys/utsname.h>
 
@@ -27,8 +28,24 @@ std::map<std::string, std::string> read_os_release(const std::string &path) {
   return values;
 }
 
+bool is_container(const std::string &root) {
+  namespace fs = std::filesystem;
+  if (fs::exists(fs::path(root) / ".dockerenv") || fs::exists(fs::path(root) / "run/.containerenv")) {
+    return true;
+  }
+  std::ifstream in(fs::path(root) / "proc/1/cgroup");
+  std::string line;
+  while (std::getline(in, line)) {
+    if (line.find("docker") != std::string::npos || line.find("containerd") != std::string::npos ||
+        line.find("kubepods") != std::string::npos || line.find("lxc") != std::string::npos) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool supported_current(const std::string &id, const std::string &version) {
-  return id == "ubuntu" && (version == "22.04" || version == "24.04");
+  return id == "ubuntu" && (version == "22.04" || version == "24.04" || version == "26.04");
 }
 
 bool supported_path(const std::string &id, const std::string &from, const std::string &target) {
@@ -53,6 +70,7 @@ public:
     const auto id_like = os.contains("ID_LIKE") ? os.at("ID_LIKE") : "";
     facts.distribution.ubuntu_derivative = facts.distribution.id != "ubuntu" && id_like.find("ubuntu") != std::string::npos;
     facts.detection_only = facts.distribution.ubuntu_derivative || facts.distribution.id == "pop";
+    facts.container_detected = is_container(root_);
 
     utsname uts{};
     if (uname(&uts) == 0) {
