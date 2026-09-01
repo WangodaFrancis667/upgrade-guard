@@ -23,6 +23,10 @@ struct ProcessResult {
   std::string stderr_text;
   bool timed_out{false};
   bool truncated{false};
+  bool stdout_truncated{false};
+  bool stderr_truncated{false};
+  bool signaled{false};
+  int termination_signal{0};
   bool spawn_failed{false};
   std::string failure_message;
 };

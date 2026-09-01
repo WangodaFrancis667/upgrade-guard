@@ -35,6 +35,7 @@ struct PlatformFacts {
   bool supported_current_release{false};
   bool supported_upgrade_path{false};
   bool detection_only{false};
+  bool container_detected{false};
 };
 
 struct PackageFacts {
@@ -42,12 +43,15 @@ struct PackageFacts {
   bool apt_cache_fresh_known{false};
   bool apt_cache_stale{false};
   std::vector<std::string> broken_packages;
+  std::vector<std::string> upgradable_packages;
   std::vector<std::string> held_packages;
   std::vector<std::string> dpkg_audit;
   std::vector<std::string> duplicate_sources;
   std::vector<std::string> disabled_sources;
   std::vector<std::string> third_party_sources;
   std::vector<std::string> proposed_removals;
+  std::vector<std::string> proposed_installs;
+  std::vector<std::string> proposed_upgrades;
   std::vector<std::string> essential_removals;
   bool simulation_performed{false};
   bool simulation_incomplete{false};
@@ -56,6 +60,7 @@ struct PackageFacts {
 struct SpaceFacts {
   std::string mount_point;
   std::uintmax_t free_bytes{0};
+  std::uintmax_t total_bytes{0};
   bool available{false};
   bool separate_mount{false};
   bool read_error{false};
@@ -81,6 +86,7 @@ struct DkmsFacts {
   bool command_missing{false};
   std::vector<std::string> modules;
   std::vector<std::string> failed_modules;
+  std::vector<std::string> incomplete_modules;
   std::vector<std::string> parse_errors;
 };
 
