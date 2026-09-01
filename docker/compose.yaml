@@ -1,0 +1,22 @@
+services:
+  ubuntu-2204:
+    build: { context: .., dockerfile: docker/Dockerfile.test, args: { UBUNTU_VERSION: "22.04" } }
+    environment: { UG_RELEASE: "22.04" }
+    volumes: ["..:/src:ro", "../artifacts:/artifacts", "./entrypoint-test.sh:/usr/local/bin/upgrade-guard-container-test:ro"]
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    security_opt: [no-new-privileges:true]
+  ubuntu-2404:
+    build: { context: .., dockerfile: docker/Dockerfile.test, args: { UBUNTU_VERSION: "24.04" } }
+    environment: { UG_RELEASE: "24.04" }
+    volumes: ["..:/src:ro", "../artifacts:/artifacts", "./entrypoint-test.sh:/usr/local/bin/upgrade-guard-container-test:ro"]
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    security_opt: [no-new-privileges:true]
+  ubuntu-2604:
+    build: { context: .., dockerfile: docker/Dockerfile.test, args: { UBUNTU_VERSION: "26.04" } }
+    environment: { UG_RELEASE: "26.04" }
+    volumes: ["..:/src:ro", "../artifacts:/artifacts", "./entrypoint-test.sh:/usr/local/bin/upgrade-guard-container-test:ro"]
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    security_opt: [no-new-privileges:true]
